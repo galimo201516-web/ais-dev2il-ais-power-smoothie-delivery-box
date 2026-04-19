@@ -1,0 +1,27 @@
+ARG PYTHON_VERSION=3.13
+
+# Builder stage
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y curl
+
+RUN curl -Ls https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+COPY pyproject.toml uv.lock .python-version ./
+
+RUN uv sync --frozen
+
+# Runtime stage
+FROM python:${PYTHON_VERSION}-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+
+COPY main.py ./
+COPY smoothies ./smoothies
+
+ENTRYPOINT ["/app/.venv/bin/python", "main.py"]
